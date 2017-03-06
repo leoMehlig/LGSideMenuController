@@ -110,6 +110,11 @@ typedef NS_ENUM(NSUInteger, LGSideMenuSwipeGestureArea)
 /** Default is YES */
 @property (assign, nonatomic, getter=isGesturesCancelsTouchesInView) IBInspectable BOOL gesturesCancelsTouchesInView;
 
+/** Default is NO */
+@property (assign, nonatomic, getter=isLeftViewSnappingEnabled) IBInspectable BOOL leftViewSnappingEnabled;
+/** Default is NO */
+@property (assign, nonatomic, getter=isRightViewSnappingEnabled) IBInspectable BOOL rightViewSnappingEnabled;
+
 /** Default is LGSideMenuSwipeGestureAreaBorders */
 @property (assign, nonatomic) IBInspectable LGSideMenuSwipeGestureArea swipeGestureArea;
 

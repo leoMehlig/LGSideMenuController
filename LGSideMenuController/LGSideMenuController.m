@@ -238,6 +238,10 @@
 
     _rightViewLayerShadowColor = [UIColor colorWithWhite:0.f alpha:0.5];
     _rightViewLayerShadowRadius = 5.f;
+    
+    _leftViewSnappingEnabled = NO;
+    _rightViewSnappingEnabled = NO;
+    
 }
 
 - (void)setupDefaults
@@ -486,28 +490,29 @@
 
         if (_leftView)
         {
+            [_leftView removeFromSuperview];
+            [_rootViewCoverViewForLeftView removeFromSuperview];
+            
             [self.view addSubview:_rootViewCoverViewForLeftView];
-
-            if (_leftViewPresentationStyle == LGSideMenuPresentationStyleSlideAbove) {
+            
+            if (_leftViewPresentationStyle == LGSideMenuPresentationStyleSlideAbove)
                 [self.view addSubview:_leftView];
-                [self.view insertSubview:_leftViewStyleView belowSubview:_leftView];
-            } else {
+            else
                 [self.view insertSubview:_leftView belowSubview:_rootVC.view];
-                [self.view insertSubview:_leftViewCoverView aboveSubview:_leftView];
-            }
+            
         }
 
         if (_rightView)
         {
-            [self.view addSubview:_rootViewCoverViewForRightView];
+            [_rightView removeFromSuperview];
+            [_rootViewCoverViewForRightView removeFromSuperview];
             
-            if (_rightViewPresentationStyle == LGSideMenuPresentationStyleSlideAbove) {
+            [self.view insertSubview:_rootViewCoverViewForRightView aboveSubview:_rootViewCoverViewForLeftView];
+            
+            if (_rightViewPresentationStyle == LGSideMenuPresentationStyleSlideAbove)
                 [self.view addSubview:_rightView];
-                [self.view insertSubview:_rightViewStyleView belowSubview:_rightView];
-            } else {
+            else
                 [self.view insertSubview:_rightView belowSubview:_rootVC.view];
-                [self.view insertSubview:_rightViewCoverView aboveSubview:_rightView];
-            }
         }
 
         // -----
@@ -1110,6 +1115,7 @@
 
     // -----
 
+    [_rootViewStyleView removeFromSuperview];
     [self.view insertSubview:_rootViewStyleView belowSubview:_rootVC.view];
 
     // -----
@@ -1245,6 +1251,7 @@
 
     // -----
 
+    [_rootViewStyleView removeFromSuperview];
     [self.view insertSubview:_rootViewStyleView belowSubview:_rootVC.view];
 
     // -----
@@ -1665,11 +1672,11 @@
         if (!_leftViewGestireStartX && (gestureRecognizer.state == UIGestureRecognizerStateBegan || gestureRecognizer.state == UIGestureRecognizerStateChanged))
         {
             CGFloat interactiveX = (self.isLeftViewShowing ? _leftViewWidth : 0.f);
-            BOOL velocityDone = (self.isLeftViewShowing ? velocity.x < 0.f : velocity.x > 0.f);
+            BOOL velocityDone = (self.isLeftViewShowing ? velocity.x < 0.f : velocity.x > 0.f) || _leftViewSnappingEnabled;
 
             CGFloat shiftLeft = -44.f;
             CGFloat shiftRight = (_swipeGestureArea == LGSideMenuSwipeGestureAreaBorders ? (self.isLeftViewShowing ? 22.f : 44.f) :  _rootVC.view.bounds.size.width);
-
+            
             if (velocityDone && location.x >= interactiveX+shiftLeft && location.x <= interactiveX+shiftRight)
             {
                 _leftViewGestireStartX = [NSNumber numberWithFloat:location.x];
@@ -1684,16 +1691,16 @@
             CGFloat firstVar = (self.isLeftViewShowingBeforeGesture ?
                                 location.x+(_leftViewWidth-_leftViewGestireStartX.floatValue) :
                                 location.x-_leftViewGestireStartX.floatValue);
-            
+
             CGFloat percentage = firstVar/_leftViewWidth;
-
+            
             if (percentage < 0.f) percentage = 0.f;
-            else if (percentage > 1.f) percentage = 1.f;
-
+            else if (percentage > 1.f && !_leftViewSnappingEnabled) percentage = 1.f;
+            
             if (gestureRecognizer.state == UIGestureRecognizerStateChanged)
             {
                 [self rootViewLayoutInvalidateWithPercentage:percentage];
-                [self leftViewLayoutInvalidateWithPercentage:percentage];
+                [self leftViewLayoutInvalidateWithPercentage:MIN(percentage, 1.f)];
             }
             else if (gestureRecognizer.state == UIGestureRecognizerStateEnded && _leftViewGestireStartX)
             {
@@ -1701,6 +1708,8 @@
                     [self showLeftViewAnimated:YES fromPercentage:percentage completionHandler:nil];
                 else if ((percentage > 0.f && velocity.x < 0.f) || (velocity.x == 0.f && percentage < 0.5))
                     [self hideLeftViewAnimated:YES fromPercentage:percentage completionHandler:nil];
+                else if (percentage > 1.f && _leftViewSnappingEnabled)
+                    [self showLeftViewAnimated:YES fromPercentage:percentage completionHandler:nil];
                 else if (percentage == 0.f)
                     [self hideLeftViewComleteAfterGesture];
                 else if (percentage == 1.f)
@@ -1718,7 +1727,7 @@
         if (!_rightViewGestireStartX && (gestureRecognizer.state == UIGestureRecognizerStateBegan || gestureRecognizer.state == UIGestureRecognizerStateChanged))
         {
             CGFloat interactiveX = (self.isRightViewShowing ? size.width-_rightViewWidth : size.width);
-            BOOL velocityDone = (self.isRightViewShowing ? velocity.x > 0.f : velocity.x < 0.f);
+            BOOL velocityDone = (self.isRightViewShowing ? velocity.x > 0.f : velocity.x < 0.f) || _rightViewSnappingEnabled;
 
             CGFloat shiftLeft = (_swipeGestureArea == LGSideMenuSwipeGestureAreaBorders ? (self.isRightViewShowing ? 22.f : 44.f) : _rootVC.view.bounds.size.width);
             CGFloat shiftRight = 44.f;
@@ -1740,12 +1749,12 @@
             CGFloat percentage = 1.f-firstVar/_rightViewWidth;
 
             if (percentage < 0.f) percentage = 0.f;
-            else if (percentage > 1.f) percentage = 1.f;
-
+            else if (percentage > 1.f && !_rightViewSnappingEnabled) percentage = 1.f;
+            
             if (gestureRecognizer.state == UIGestureRecognizerStateChanged)
             {
                 [self rootViewLayoutInvalidateWithPercentage:percentage];
-                [self rightViewLayoutInvalidateWithPercentage:percentage];
+                [self rightViewLayoutInvalidateWithPercentage:MIN(percentage, 1.f)];
             }
             else if (gestureRecognizer.state == UIGestureRecognizerStateEnded && _rightViewGestireStartX)
             {
@@ -1753,6 +1762,8 @@
                     [self showRightViewAnimated:YES fromPercentage:percentage completionHandler:nil];
                 else if ((percentage > 0.f && velocity.x > 0.f) || (velocity.x == 0.f && percentage < 0.5))
                     [self hideRightViewAnimated:YES fromPercentage:percentage completionHandler:nil];
+                else if (percentage > 1.f && _rightViewSnappingEnabled)
+                    [self showRightViewAnimated:YES fromPercentage:percentage completionHandler:nil];
                 else if (percentage == 0.f)
                     [self hideRightViewComleteAfterGesture];
                 else if (percentage == 1.f)
