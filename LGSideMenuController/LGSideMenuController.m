@@ -1321,7 +1321,7 @@
 
         [_rootVC removeFromParentViewController];
 
-        _currentShouldAutorotate = NO;
+        _currentShouldAutorotate = YES;
         _currentPreferredStatusBarHidden = (kLGSideMenuStatusBarHidden || !kLGSideMenuIsLeftViewStatusBarVisible);
         _currentPreferredStatusBarStyle = _leftViewStatusBarStyle;
         _currentPreferredStatusBarUpdateAnimation = _leftViewStatusBarUpdateAnimation;
